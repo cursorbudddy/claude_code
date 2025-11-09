@@ -10,6 +10,7 @@ import Flats from './pages/Flats';
 import Tenants from './pages/Tenants';
 import TenantDetails from './pages/TenantDetails';
 import NewEntry from './pages/NewEntry';
+import PaymentEntry from './pages/PaymentEntry';
 import Payments from './pages/Payments';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
@@ -27,6 +28,7 @@ function App() {
             <Route path="/tenants" element={<Tenants />} />
             <Route path="/tenants/:id" element={<TenantDetails />} />
             <Route path="/new-entry" element={<NewEntry />} />
+            <Route path="/payment-entry" element={<PaymentEntry />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/reports" element={<Reports />} />

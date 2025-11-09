@@ -66,4 +66,23 @@ export const deleteExpense = (id) => api.delete(`/expenses/${id}`);
 export const getDashboardStats = (params) => api.get('/dashboard/stats', { params });
 export const getDashboardTrends = (params) => api.get('/dashboard/trends', { params });
 
+// Invoices
+export const getInvoices = (params) => api.get('/invoices', { params });
+export const getInvoice = (id) => api.get(`/invoices/${id}`);
+export const createInvoice = (data) => api.post('/invoices', data);
+export const updateInvoice = (id, data) => api.put(`/invoices/${id}`, data);
+export const downloadInvoice = (id) => api.get(`/invoices/${id}/download`, {
+  responseType: 'blob'
+});
+export const deleteInvoice = (id) => api.delete(`/invoices/${id}`);
+
+// Payment Schedules
+export const getPaymentSchedules = (rentalId) => api.get(`/payment-schedules/${rentalId}`);
+export const getOverdueSchedules = (params) => api.get('/payment-schedules/overdue/all', { params });
+export const getPendingSchedules = (params) => api.get('/payment-schedules/pending/all', { params });
+export const generateSchedules = (rentalId) => api.post(`/payment-schedules/${rentalId}/generate`);
+export const updateSchedule = (id, data) => api.put(`/payment-schedules/${id}`, data);
+export const recordSchedulePayment = (id, data) => api.post(`/payment-schedules/${id}/payment`, data);
+export const getNextDuePayment = (rentalId) => api.get(`/payment-schedules/${rentalId}/next-due`);
+
 export default api;

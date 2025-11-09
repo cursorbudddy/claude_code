@@ -12,8 +12,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve uploaded files statically
+// Serve uploaded files and invoices statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
 
 // Import routes
 const buildingRoutes = require('./routes/buildings');
@@ -23,6 +24,8 @@ const rentalRoutes = require('./routes/rentals');
 const paymentRoutes = require('./routes/payments');
 const expenseRoutes = require('./routes/expenses');
 const dashboardRoutes = require('./routes/dashboard');
+const invoiceRoutes = require('./routes/invoices');
+const paymentScheduleRoutes = require('./routes/payment-schedules');
 
 // Use routes
 app.use('/api/buildings', buildingRoutes);
@@ -32,6 +35,8 @@ app.use('/api/rentals', rentalRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/payment-schedules', paymentScheduleRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
