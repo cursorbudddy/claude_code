@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
+const paymentScheduleGenerator = require('../utils/paymentScheduleGenerator');
 
 // Get all rental agreements
 router.get('/', async (req, res) => {
@@ -149,6 +150,34 @@ router.post('/', async (req, res) => {
                                amount, payment_type, remarks)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [result.rows[0].id, tenant_id, building_id, start_date, advance_amount, 'advance', 'Initial advance payment']
+      );
+    }
+
+    // Auto-generate payment schedules
+    const schedules = paymentScheduleGenerator.generateSchedule(result.rows[0]);
+
+    // Insert schedules into database
+    for (const schedule of schedules) {
+      await db.query(
+        `INSERT INTO payment_schedules
+          (rental_agreement_id, contract_number, due_date, billing_period_start,
+           billing_period_end, amount_due, amount_paid, balance, status,
+           is_overdue, days_overdue, late_fee)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          schedule.rental_agreement_id,
+          schedule.contract_number,
+          schedule.due_date,
+          schedule.billing_period_start,
+          schedule.billing_period_end,
+          schedule.amount_due,
+          schedule.amount_paid,
+          schedule.balance,
+          schedule.status,
+          schedule.is_overdue,
+          schedule.days_overdue,
+          schedule.late_fee
+        ]
       );
     }
 

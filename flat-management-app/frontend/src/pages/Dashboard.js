@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats, getDashboardTrends, getBuildings } from '../api';
+import { getDashboardStats, getDashboardTrends, getBuildings, getOverdueSchedules } from '../api';
 import { FaBuilding, FaDoorOpen, FaUsers, FaMoneyBillWave, FaExclamationTriangle, FaPlus, FaList, FaSearch } from 'react-icons/fa';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [trends, setTrends] = useState([]);
   const [buildings, setBuildings] = useState([]);
   const [selectedBuilding, setSelectedBuilding] = useState('');
+  const [overduePayments, setOverduePayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,15 +22,17 @@ const Dashboard = () => {
       setLoading(true);
       const params = selectedBuilding ? { building_id: selectedBuilding } : {};
 
-      const [statsRes, trendsRes, buildingsRes] = await Promise.all([
+      const [statsRes, trendsRes, buildingsRes, overdueRes] = await Promise.all([
         getDashboardStats(params),
         getDashboardTrends(params),
-        getBuildings()
+        getBuildings(),
+        getOverdueSchedules(params)
       ]);
 
       setStats(statsRes.data);
       setTrends(trendsRes.data);
       setBuildings(buildingsRes.data);
+      setOverduePayments(overdueRes.data || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -197,6 +200,49 @@ const Dashboard = () => {
               <Line type="monotone" dataKey="net" stroke="#007bff" strokeWidth={2} name="Net" />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Overdue Payments */}
+      {overduePayments.length > 0 && (
+        <div className="card" style={{ marginTop: '24px', borderLeft: '4px solid #dc3545' }}>
+          <h3 className="card-title" style={{ color: '#dc3545' }}>
+            <FaExclamationTriangle /> Overdue Payments ({overduePayments.length})
+          </h3>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Building</th>
+                  <th>Flat</th>
+                  <th>Due Date</th>
+                  <th>Days Overdue</th>
+                  <th>Amount</th>
+                  <th>Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overduePayments.slice(0, 10).map((payment) => (
+                  <tr key={payment.id}>
+                    <td style={{ fontWeight: '600' }}>{payment.tenant_name}</td>
+                    <td>{payment.building_name}</td>
+                    <td>Flat {payment.flat_number}</td>
+                    <td>{new Date(payment.due_date).toLocaleDateString()}</td>
+                    <td>
+                      <span className="badge badge-danger">
+                        {payment.days_overdue} days
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: '600', color: '#dc3545' }}>
+                      {formatCurrency(payment.balance)}
+                    </td>
+                    <td>{payment.tenant_contact}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBuildings, getFlatsByBuilding, createTenant, createRental } from '../api';
 import { FaUser, FaSave, FaTimes } from 'react-icons/fa';
+import CountryCodeSelector from '../components/CountryCodeSelector';
 
 const NewEntry = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const NewEntry = () => {
     name: '',
     id_number: '',
     nationality: '',
+    country_code: '+968',
     contact_number: '',
     email: '',
     id_document: null,
@@ -117,6 +119,7 @@ const NewEntry = () => {
       tenantFormData.append('name', formData.name);
       tenantFormData.append('id_number', formData.id_number);
       tenantFormData.append('nationality', formData.nationality);
+      tenantFormData.append('country_code', formData.country_code);
       tenantFormData.append('contact_number', formData.contact_number);
       tenantFormData.append('email', formData.email);
       if (formData.id_document) {
@@ -201,14 +204,23 @@ const NewEntry = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Contact Number</label>
-              <input
-                type="tel"
-                name="contact_number"
-                className="form-input"
-                value={formData.contact_number}
-                onChange={handleChange}
-              />
+              <label className="form-label">Mobile Number</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <CountryCodeSelector
+                  value={formData.country_code}
+                  onChange={handleChange}
+                  name="country_code"
+                />
+                <input
+                  type="tel"
+                  name="contact_number"
+                  className="form-input"
+                  value={formData.contact_number}
+                  onChange={handleChange}
+                  placeholder="12345678"
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
           </div>
 

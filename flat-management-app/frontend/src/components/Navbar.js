@@ -12,6 +12,7 @@ const Navbar = () => {
     { path: '/flats', label: 'Flats', icon: <FaDoorOpen /> },
     { path: '/tenants', label: 'Tenants', icon: <FaUsers /> },
     { path: '/payments', label: 'Payments', icon: <FaMoneyBillWave /> },
+    { path: '/payment-entry', label: 'Payment Entry', icon: <FaMoneyBillWave /> },
     { path: '/expenses', label: 'Expenses', icon: <FaFileInvoiceDollar /> },
     { path: '/reports', label: 'Reports', icon: <FaChartBar /> },
   ];
