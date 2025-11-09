@@ -313,6 +313,22 @@ class InvoiceGenerator {
       });
     }
 
+    // Fine amount
+    if (invoiceData.fine_amount && invoiceData.fine_amount > 0) {
+      rows.push({
+        description: `Fine: ${invoiceData.fine_description || 'Applied fine'}`,
+        amount: this._formatCurrency(invoiceData.fine_amount)
+      });
+    }
+
+    // Additional charges
+    if (invoiceData.additional_charges && invoiceData.additional_charges > 0) {
+      rows.push({
+        description: `Additional Charges: ${invoiceData.additional_charges_description || 'Misc charges'}`,
+        amount: this._formatCurrency(invoiceData.additional_charges)
+      });
+    }
+
     // Discount
     if (invoiceData.discount && invoiceData.discount > 0) {
       rows.push({

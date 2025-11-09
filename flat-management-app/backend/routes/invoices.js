@@ -114,6 +114,10 @@ router.post('/', async (req, res) => {
       rental_amount,
       previous_balance = 0,
       late_fee = 0,
+      fine_amount = 0,
+      fine_description = '',
+      additional_charges = 0,
+      additional_charges_description = '',
       discount = 0,
       notes
     } = req.body;
@@ -139,7 +143,7 @@ router.post('/', async (req, res) => {
     const contract_number = contractResult.rows[0].contract_number;
 
     // Calculate totals
-    const total_amount = parseFloat(rental_amount) + parseFloat(previous_balance) + parseFloat(late_fee) - parseFloat(discount);
+    const total_amount = parseFloat(rental_amount) + parseFloat(previous_balance) + parseFloat(late_fee) + parseFloat(fine_amount) + parseFloat(additional_charges) - parseFloat(discount);
     const balance_amount = total_amount; // No payment received yet
 
     // Calculate due date (7 days from invoice date)
@@ -152,15 +156,17 @@ router.post('/', async (req, res) => {
       `INSERT INTO invoices
         (contract_number, rental_agreement_id, tenant_id, building_id, flat_id,
          invoice_date, due_date, billing_period_start, billing_period_end,
-         rental_amount, previous_balance, payment_received, late_fee, discount,
-         total_amount, balance_amount, payment_status, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+         rental_amount, previous_balance, payment_received, late_fee,
+         fine_amount, fine_description, additional_charges, additional_charges_description,
+         discount, total_amount, balance_amount, payment_status, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *`,
       [
         contract_number, rental_agreement_id, tenant_id, building_id, flat_id,
         invoice_date, due_date, billing_period_start, billing_period_end,
-        rental_amount, previous_balance, 0, late_fee, discount,
-        total_amount, balance_amount, 'pending', notes
+        rental_amount, previous_balance, 0, late_fee,
+        fine_amount, fine_description, additional_charges, additional_charges_description,
+        discount, total_amount, balance_amount, 'pending', notes
       ]
     );
 
