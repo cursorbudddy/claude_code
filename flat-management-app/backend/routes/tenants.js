@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../database/db');
+const { optionalAuth } = require('../middleware/auth');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/id-documents');
@@ -160,21 +161,22 @@ router.get('/:id/rentals', async (req, res) => {
 });
 
 // Create new tenant (with optional file upload)
-router.post('/', upload.single('id_document'), async (req, res) => {
+router.post('/', optionalAuth, upload.single('id_document'), async (req, res) => {
   try {
-    const { name, id_number, nationality, contact_number, email } = req.body;
+    const { name, id_number, nationality, country_code, contact_number, email } = req.body;
 
     if (!name || !id_number) {
       return res.status(400).json({ error: 'Name and ID number are required' });
     }
 
     const id_document_path = req.file ? `/uploads/id-documents/${req.file.filename}` : null;
+    const created_by = req.user ? req.user.id : null;
 
     const result = await db.query(
-      `INSERT INTO tenants (name, id_number, nationality, contact_number, email, id_document_path)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO tenants (name, id_number, nationality, country_code, contact_number, email, id_document_path, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [name, id_number, nationality, contact_number, email, id_document_path]
+      [name, id_number, nationality, country_code, contact_number, email, id_document_path, created_by]
     );
 
     res.status(201).json(result.rows[0]);

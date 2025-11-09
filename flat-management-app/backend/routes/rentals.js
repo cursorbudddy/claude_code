@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const paymentScheduleGenerator = require('../utils/paymentScheduleGenerator');
+const { optionalAuth, authenticate, checkEditPermission } = require('../middleware/auth');
 
 // Get all rental agreements
 router.get('/', async (req, res) => {
@@ -78,7 +79,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new rental agreement
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
     const {
       tenant_id,
@@ -91,6 +92,8 @@ router.post('/', async (req, res) => {
       rental_period,
       advance_amount
     } = req.body;
+
+    const created_by = req.user ? req.user.id : null;
 
     if (!tenant_id || !flat_id || !building_id || !start_date || !duration_value || !duration_unit || !rental_amount || !rental_period) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -126,15 +129,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Flat is already occupied' });
     }
 
-    // Create rental agreement
+    // Create rental agreement (created_by and can_edit_until are set by trigger)
     const result = await db.query(
       `INSERT INTO rental_agreements
         (tenant_id, flat_id, building_id, start_date, end_date, duration_value,
-         duration_unit, rental_amount, rental_period, advance_amount, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         duration_unit, rental_amount, rental_period, advance_amount, is_active, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [tenant_id, flat_id, building_id, start_date, end_date, duration_value,
-       duration_unit, rental_amount, rental_period, advance_amount || 0, true]
+       duration_unit, rental_amount, rental_period, advance_amount || 0, true, created_by]
     );
 
     // Mark flat as occupied
