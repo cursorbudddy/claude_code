@@ -9,6 +9,39 @@ const api = axios.create({
   },
 });
 
+// Request interceptor to add token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Unauthorized - token expired or invalid
+      localStorage.removeItem('token');
+      // Redirect to login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    } else if (error.response?.status === 403) {
+      // Forbidden - insufficient permissions
+      console.error('Access denied:', error.response.data);
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Buildings
 export const getBuildings = () => api.get('/buildings');
 export const getBuilding = (id) => api.get(`/buildings/${id}`);
@@ -84,5 +117,30 @@ export const generateSchedules = (rentalId) => api.post(`/payment-schedules/${re
 export const updateSchedule = (id, data) => api.put(`/payment-schedules/${id}`, data);
 export const recordSchedulePayment = (id, data) => api.post(`/payment-schedules/${id}/payment`, data);
 export const getNextDuePayment = (rentalId) => api.get(`/payment-schedules/${rentalId}/next-due`);
+
+// Authentication
+export const login = (credentials) => api.post('/auth/login', credentials);
+export const logout = () => api.post('/auth/logout');
+export const getCurrentUser = () => api.get('/auth/me');
+export const changePassword = (data) => api.post('/auth/change-password', data);
+export const register = (data) => api.post('/auth/register', data);
+
+// Users (Admin only)
+export const getUsers = () => api.get('/users');
+export const getUser = (id) => api.get(`/users/${id}`);
+export const createUser = (data) => api.post('/users', data);
+export const updateUser = (id, data) => api.put(`/users/${id}`, data);
+export const deleteUser = (id) => api.delete(`/users/${id}`);
+export const resetUserPassword = (id, newPassword) => api.post(`/users/${id}/reset-password`, { newPassword });
+export const getUserStats = () => api.get('/users/stats/overview');
+
+// Expense Approval (Admin only)
+export const getPendingExpenses = () => api.get('/expenses/approval/pending');
+export const approveExpense = (id, notes) => api.post(`/expenses/${id}/approve`, { approval_notes: notes });
+export const rejectExpense = (id, reason) => api.post(`/expenses/${id}/reject`, { approval_notes: reason });
+
+// Reports (Admin only)
+export const generateReport = (data) => api.post('/reports/generate', data, { responseType: 'blob' });
+export const previewReport = (params) => api.get('/reports/preview', { params });
 
 export default api;
