@@ -12,9 +12,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve uploaded files, invoices, and reports statically
+// Serve uploaded files, invoices, contracts, and reports statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/invoices', express.static(path.join(__dirname, 'invoices')));
+app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 app.use('/reports', express.static(path.join(__dirname, 'reports')));
 
 // Import routes

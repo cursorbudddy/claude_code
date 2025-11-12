@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const paymentScheduleGenerator = require('../utils/paymentScheduleGenerator');
+const rentalAgreementGenerator = require('../utils/rentalAgreementGenerator');
 const { optionalAuth, authenticate, checkEditPermission } = require('../middleware/auth');
+const path = require('path');
+const fs = require('fs');
 
 // Get all rental agreements
 router.get('/', async (req, res) => {
@@ -306,6 +309,134 @@ router.delete('/:id', async (req, res) => {
     await db.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Failed to delete rental agreement' });
+  }
+});
+
+// Generate PDF for rental agreement
+router.post('/:id/generate-pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get rental agreement with all related data
+    const rentalResult = await db.query(
+      `SELECT ra.*,
+        t.name as tenant_name,
+        t.id_number as tenant_id_number,
+        t.nationality as tenant_nationality,
+        t.country_code as tenant_country_code,
+        t.contact_number as tenant_contact,
+        t.email as tenant_email,
+        f.flat_number,
+        f.floor_number,
+        b.name as building_name,
+        b.address as building_address,
+        b.contact_number as building_contact
+       FROM rental_agreements ra
+       JOIN tenants t ON ra.tenant_id = t.id
+       JOIN flats f ON ra.flat_id = f.id
+       JOIN buildings b ON f.building_id = b.id
+       WHERE ra.id = $1`,
+      [id]
+    );
+
+    if (rentalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Rental agreement not found' });
+    }
+
+    const rental = rentalResult.rows[0];
+
+    // Prepare data for PDF generation
+    const rentalData = {
+      contract_number: rental.contract_number,
+      start_date: rental.start_date,
+      end_date: rental.end_date,
+      duration_value: rental.duration_value,
+      duration_unit: rental.duration_unit,
+      rental_amount: rental.rental_amount,
+      rental_period: rental.rental_period,
+      advance_amount: rental.advance_amount,
+      security_deposit: rental.security_deposit,
+      total_amount_due: rental.total_amount_due,
+      is_active: rental.is_active,
+      created_at: rental.created_at
+    };
+
+    const tenantData = {
+      name: rental.tenant_name,
+      id_number: rental.tenant_id_number,
+      nationality: rental.tenant_nationality,
+      country_code: rental.tenant_country_code,
+      contact_number: rental.tenant_contact,
+      email: rental.tenant_email
+    };
+
+    const buildingData = {
+      name: rental.building_name,
+      address: rental.building_address,
+      contact_number: rental.building_contact
+    };
+
+    const flatData = {
+      flat_number: rental.flat_number,
+      floor_number: rental.floor_number
+    };
+
+    // Generate PDF
+    const pdfPath = await rentalAgreementGenerator.generateRentalAgreement(
+      rentalData,
+      tenantData,
+      buildingData,
+      flatData
+    );
+
+    res.json({
+      message: 'Rental agreement PDF generated successfully',
+      pdf_path: pdfPath,
+      download_url: `/api/rentals/${id}/download-pdf`
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate rental agreement PDF' });
+  }
+});
+
+// Download PDF for rental agreement
+router.get('/:id/download-pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get rental agreement contract number
+    const rentalResult = await db.query(
+      'SELECT contract_number FROM rental_agreements WHERE id = $1',
+      [id]
+    );
+
+    if (rentalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Rental agreement not found' });
+    }
+
+    const contractNumber = rentalResult.rows[0].contract_number;
+    const filePath = rentalAgreementGenerator.getContractPath(contractNumber);
+
+    // Check if PDF exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        error: 'PDF not found. Please generate the PDF first.',
+        generate_url: `/api/rentals/${id}/generate-pdf`
+      });
+    }
+
+    // Send PDF file
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${contractNumber}.pdf"`);
+
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to download rental agreement PDF' });
   }
 });
 
