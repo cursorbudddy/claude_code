@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats, getBuildings, getOverdueSchedules, getLatestRental, getUpcomingPayments, getPayments, getExpenses } from '../api';
+import { getDashboardStats, getBuildings, getOverdueSchedules, getLatestRental, getUpcomingPayments, getPayments, getExpenses, getFlats } from '../api';
 import { useBuilding } from '../context/BuildingContext';
 import BuildingSelector from '../components/BuildingSelector';
 import { FaBuilding, FaDoorOpen, FaUsers, FaMoneyBillWave, FaExclamationTriangle, FaPlus, FaList, FaFileContract, FaClock, FaCalendar } from 'react-icons/fa';
@@ -17,6 +17,9 @@ const Dashboard = () => {
   const [recentPayments, setRecentPayments] = useState([]);
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [flats, setFlats] = useState([]);
+  const [showOccupiedTooltip, setShowOccupiedTooltip] = useState(false);
+  const [showVacantTooltip, setShowVacantTooltip] = useState(false);
 
   // Initialize with effective building for dashboard tab
   useEffect(() => {
@@ -50,14 +53,16 @@ const Dashboard = () => {
         latestRentalRes,
         upcomingRes,
         paymentsRes,
-        expensesRes
+        expensesRes,
+        flatsRes
       ] = await Promise.all([
         getDashboardStats(params),
         getOverdueSchedules(params),
         getLatestRental().catch(() => ({ data: null })),
         getUpcomingPayments({ ...params, limit: 5 }).catch(() => ({ data: [] })),
         getPayments({ ...params, limit: 5 }).catch(() => ({ data: [] })),
-        getExpenses({ ...params, limit: 5 }).catch(() => ({ data: [] }))
+        getExpenses({ ...params, limit: 5 }).catch(() => ({ data: [] })),
+        getFlats(params).catch(() => ({ data: [] }))
       ]);
 
       setStats(statsRes.data);
@@ -66,6 +71,7 @@ const Dashboard = () => {
       setUpcomingPayments(upcomingRes.data || []);
       setRecentPayments(paymentsRes.data || []);
       setRecentExpenses(expensesRes.data || []);
+      setFlats(flatsRes.data || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -96,9 +102,23 @@ const Dashboard = () => {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Dashboard</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/new-entry')}>
-          <FaPlus /> New Entry
-        </button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={() => navigate('/new-entry')}>
+            <FaPlus /> New Tenant Entry
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/flats')}>
+            <FaList /> View All Flats
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/rentals')}>
+            <FaFileContract /> View Rentals
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/payment-entry')}>
+            <FaMoneyBillWave /> Record Payment
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/expenses')}>
+            <FaMoneyBillWave /> Record Expense
+          </button>
+        </div>
       </div>
 
       {/* Building Selector */}
@@ -110,24 +130,92 @@ const Dashboard = () => {
 
       {/* Statistics Cards */}
       <div className="stats-grid">
-        <div className="stat-card info">
-          <div className="stat-label">Total Buildings</div>
-          <div className="stat-value">{stats?.total_buildings || 0}</div>
-        </div>
         <div className="stat-card">
           <div className="stat-label">Total Flats</div>
           <div className="stat-value">{stats?.total_flats || 0}</div>
         </div>
-        <div className="stat-card success">
+        <div
+          className="stat-card success"
+          style={{ position: 'relative', cursor: 'pointer' }}
+          onMouseEnter={() => setShowOccupiedTooltip(true)}
+          onMouseLeave={() => setShowOccupiedTooltip(false)}
+          onClick={() => setShowOccupiedTooltip(!showOccupiedTooltip)}
+        >
           <div className="stat-label">Occupied Flats</div>
           <div className="stat-value">{stats?.occupied_flats || 0}</div>
           <div className="stat-subtext">
             {stats?.total_flats > 0 ? ((stats.occupied_flats / stats.total_flats) * 100).toFixed(1) : 0}% occupancy
           </div>
+          {showOccupiedTooltip && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '0',
+              marginTop: '8px',
+              backgroundColor: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '200px',
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '8px', color: '#333' }}>Occupied Flats:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {flats.filter(f => f.is_occupied).length > 0 ? (
+                  flats.filter(f => f.is_occupied).map(flat => (
+                    <div key={flat.id} style={{ fontSize: '13px', color: '#666' }}>
+                      {flat.building_name} - Flat {flat.flat_number}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#999' }}>No occupied flats</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="stat-card warning">
+        <div
+          className="stat-card warning"
+          style={{ position: 'relative', cursor: 'pointer' }}
+          onMouseEnter={() => setShowVacantTooltip(true)}
+          onMouseLeave={() => setShowVacantTooltip(false)}
+          onClick={() => setShowVacantTooltip(!showVacantTooltip)}
+        >
           <div className="stat-label">Vacant Flats</div>
           <div className="stat-value">{stats?.vacant_flats || 0}</div>
+          {showVacantTooltip && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '0',
+              marginTop: '8px',
+              backgroundColor: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '200px',
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '8px', color: '#333' }}>Vacant Flats:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {flats.filter(f => !f.is_occupied).length > 0 ? (
+                  flats.filter(f => !f.is_occupied).map(flat => (
+                    <div key={flat.id} style={{ fontSize: '13px', color: '#666' }}>
+                      {flat.building_name} - Flat {flat.flat_number}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#999' }}>No vacant flats</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="stat-card info">
           <div className="stat-label">Active Tenants</div>
@@ -300,28 +388,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div className="card" style={{ marginTop: '24px' }}>
-        <h3 className="card-title">Quick Actions</h3>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
-          <button className="btn btn-primary" onClick={() => navigate('/new-entry')}>
-            <FaPlus /> New Tenant Entry
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/flats')}>
-            <FaList /> View All Flats
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/rentals')}>
-            <FaFileContract /> View Rentals
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/payment-entry')}>
-            <FaMoneyBillWave /> Record Payment
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/expenses')}>
-            <FaMoneyBillWave /> Record Expense
-          </button>
-        </div>
-      </div>
 
       {/* Recent Activities */}
       <div className="card-grid" style={{ marginTop: '24px' }}>

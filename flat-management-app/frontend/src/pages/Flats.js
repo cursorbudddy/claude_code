@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getFlats, getBuildings } from '../api';
 import { FaDoorOpen, FaUser, FaFilter } from 'react-icons/fa';
+import { useBuilding } from '../context/BuildingContext';
 
 const Flats = () => {
+  // BuildingContext integration
+  const { buildings: contextBuildings, getEffectiveBuilding, setTabBuilding } = useBuilding();
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+
   const [flats, setFlats] = useState([]);
   const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +19,17 @@ const Flats = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Initialize with effective building from context
+  useEffect(() => {
+    if (contextBuildings.length > 0) {
+      const effectiveBuilding = getEffectiveBuilding('flats');
+      if (effectiveBuilding) {
+        setSelectedBuilding(effectiveBuilding);
+        setFilters(prev => ({ ...prev, building_id: effectiveBuilding.id.toString() }));
+      }
+    }
+  }, [contextBuildings, getEffectiveBuilding]);
 
   useEffect(() => {
     fetchFlats();
@@ -60,6 +76,13 @@ const Flats = () => {
       ...prev,
       [name]: value
     }));
+
+    // Update building context when building filter changes
+    if (name === 'building_id') {
+      const building = contextBuildings.find(b => b.id.toString() === value);
+      setSelectedBuilding(building || null);
+      setTabBuilding('flats', building || null);
+    }
   };
 
   const formatCurrency = (amount) => {

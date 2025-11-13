@@ -5,10 +5,13 @@ import { FaUser, FaSave, FaTimes } from 'react-icons/fa';
 import CountryCodeSelector from '../components/CountryCodeSelector';
 import NationalityDropdown from '../components/NationalityDropdown';
 import IdCheckModal from '../components/IdCheckModal';
-import CustomDurationPicker from '../components/CustomDurationPicker';
+import { useBuilding } from '../context/BuildingContext';
 
 const NewEntry = () => {
   const navigate = useNavigate();
+  // BuildingContext integration
+  const { buildings: contextBuildings, getEffectiveBuilding } = useBuilding();
+
   const [buildings, setBuildings] = useState([]);
   const [availableFlats, setAvailableFlats] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,9 +33,9 @@ const NewEntry = () => {
     // Rental Details
     building_id: '',
     flat_id: '',
-    start_date: new Date(),
-    end_date: null,
-    duration_days: 0,
+    start_date: new Date().toISOString().split('T')[0],
+    duration_value: '',
+    duration_unit: 'months', // 'days' or 'months'
     rental_amount: '',
     rental_period: 'month',
     advance_amount: ''
@@ -41,6 +44,20 @@ const NewEntry = () => {
   useEffect(() => {
     fetchBuildings();
   }, []);
+
+  // Pre-select building from Dashboard context
+  useEffect(() => {
+    if (contextBuildings.length > 0) {
+      const effectiveBuilding = getEffectiveBuilding('newentry');
+      if (effectiveBuilding) {
+        setSelectedBuildingId(effectiveBuilding.id.toString());
+        setFormData(prev => ({
+          ...prev,
+          building_id: effectiveBuilding.id.toString()
+        }));
+      }
+    }
+  }, [contextBuildings, getEffectiveBuilding]);
 
   useEffect(() => {
     if (selectedBuildingId) {
@@ -145,25 +162,13 @@ const NewEntry = () => {
     }));
   };
 
-  // Custom Duration Picker Handlers
-  const handleStartDateChange = (date) => {
+  // Duration Unit Change Handler - updates rental_period automatically
+  const handleDurationUnitChange = (e) => {
+    const unit = e.target.value;
     setFormData(prev => ({
       ...prev,
-      start_date: date
-    }));
-  };
-
-  const handleEndDateChange = (date) => {
-    setFormData(prev => ({
-      ...prev,
-      end_date: date
-    }));
-  };
-
-  const handleDurationChange = (days) => {
-    setFormData(prev => ({
-      ...prev,
-      duration_days: days
+      duration_unit: unit,
+      rental_period: unit === 'days' ? 'day' : 'month'
     }));
   };
 
@@ -181,8 +186,8 @@ const NewEntry = () => {
       return;
     }
 
-    if (!formData.end_date || formData.duration_days === 0) {
-      alert('Please select rental start and end dates');
+    if (!formData.duration_value || formData.duration_value <= 0) {
+      alert('Please enter a valid rental duration');
       return;
     }
 
@@ -213,9 +218,9 @@ const NewEntry = () => {
         tenant_id: tenantId,
         flat_id: parseInt(formData.flat_id),
         building_id: parseInt(formData.building_id),
-        start_date: formData.start_date.toISOString().split('T')[0],
-        duration_value: formData.duration_days,
-        duration_unit: 'days',
+        start_date: formData.start_date,
+        duration_value: parseInt(formData.duration_value),
+        duration_unit: formData.duration_unit,
         rental_amount: parseFloat(formData.rental_amount),
         rental_period: formData.rental_period,
         advance_amount: formData.advance_amount ? parseFloat(formData.advance_amount) : 0
@@ -378,42 +383,64 @@ const NewEntry = () => {
             </div>
           </div>
 
-          {/* Custom Duration Picker */}
-          <CustomDurationPicker
-            startDate={formData.start_date}
-            endDate={formData.end_date}
-            onStartDateChange={handleStartDateChange}
-            onEndDateChange={handleEndDateChange}
-            onDurationChange={handleDurationChange}
-          />
-
+          {/* Start Date and Duration */}
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label required">Rental Amount</label>
+              <label className="form-label required">Start Date</label>
+              <input
+                type="date"
+                name="start_date"
+                className="form-input"
+                value={formData.start_date}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label required">Rental Duration</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="number"
-                  name="rental_amount"
+                  name="duration_value"
                   className="form-input"
-                  value={formData.rental_amount}
+                  value={formData.duration_value}
                   onChange={handleChange}
-                  min="0"
-                  step="0.01"
+                  min="1"
                   required
                   style={{ flex: 2 }}
-                  placeholder="Enter amount"
+                  placeholder="Enter duration"
                 />
                 <select
-                  name="rental_period"
+                  name="duration_unit"
                   className="form-select"
-                  value={formData.rental_period}
-                  onChange={handleChange}
+                  value={formData.duration_unit}
+                  onChange={handleDurationUnitChange}
                   style={{ flex: 1 }}
                 >
-                  <option value="day">Per Day</option>
-                  <option value="month">Per Month</option>
+                  <option value="days">Days</option>
+                  <option value="months">Months</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label required">
+                Rental Amount (per {formData.rental_period})
+              </label>
+              <input
+                type="number"
+                name="rental_amount"
+                className="form-input"
+                value={formData.rental_amount}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+                required
+                placeholder="Enter amount"
+              />
             </div>
 
             <div className="form-group">

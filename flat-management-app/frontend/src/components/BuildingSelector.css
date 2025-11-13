@@ -11,11 +11,11 @@
 
 .building-card {
   flex: 1;
-  min-width: 200px;
-  max-width: 300px;
+  min-width: 150px;
+  max-width: 220px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
-  padding: 20px;
+  padding: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -45,14 +45,14 @@
 }
 
 .building-card-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  margin: 0 0 10px 0;
+  margin: 0;
   color: white;
 }
 
 .building-card-info {
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   opacity: 0.95;
   display: flex;

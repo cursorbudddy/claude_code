@@ -28,17 +28,19 @@ const BuildingSelector = ({
   return (
     <div className="building-selector">
       <div className="building-cards-container">
-        {cardBuildings.map((building) => (
+        {cardBuildings.map((building, index) => (
           <div
             key={building.id}
             className={`building-card ${selectedBuilding?.id === building.id ? 'selected' : ''}`}
             onClick={() => handleCardClick(building)}
           >
-            <div className="building-card-icon">
-              <FaBuilding />
-            </div>
             <div className="building-card-content">
-              <h3 className="building-card-name">{building.name}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 className="building-card-name">{building.name}</h3>
+                <span style={{ fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                  {index + 1}/{buildings.length}
+                </span>
+              </div>
               <p className="building-card-info">
                 <span className="building-card-flats">{building.total_flats} flats</span>
                 <span className="building-card-separator">•</span>
